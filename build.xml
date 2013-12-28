@@ -1,0 +1,144 @@
+<?xml version="1.0"?>
+<!--
+	build.xml
+	GWTriFold Build Script
+	
+	Copyright 2013 Nathan Ross
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+-->
+<project name="GWTriFold" basedir="." default="jar">
+
+	<presetdef name="javac">
+		<javac includeantruntime="false" />
+	</presetdef>
+	<property environment="env"/>
+	<property name="gwtSDK" location="${env.GWT_HOME}" />
+    <property name="src" value="src"/>
+    <property name="sourcefolder" value="GWTriFold"/>
+	<!--to avoid confusion, only set to a version # when making a release -->
+    <property name="dist" value="GWTriFold-dist"/>
+	<property name="jarstatic" value="tools/jar" />
+	<property name="zipstatic" value="tools/zip" />
+	<property name="buildstatic" value="tools/build" />
+    <property name="moduleDir" value="io/github/nathanross/gwtrifold/"/>
+    <property name="moduleXML" value="GWTriFold.gwt.xml"/>
+    <property name="build" value="build"/>   
+	<property name="lib" value="war/WEB-INF/lib"/>
+
+    <path id="project.classpath">       
+        <fileset dir="${lib}">
+            <include name="**/*.jar"/>
+        </fileset>
+    </path>  
+   
+    <target name="clean">
+        <delete dir="${build}"/>
+        <delete dir="${dist}"/>
+    </target>  
+	
+	<target name="cleanAll" depends="clean">
+		<delete file="${lib}/${sourcefolder}.jar" />
+		<delete file="${dist}.zip"/>
+	</target>
+
+    <!-- Compile the java source code using javac -->
+    <target name="compile">
+        <mkdir dir="${build}"/>
+        <javac srcdir="${src}" destdir="${build}/">
+            <classpath>
+				<path refid="project.classpath" />
+				<pathelement location="${gwtSDK}/gwt-user.jar"/>
+				<pathelement location="${gwtSDK}/gwt-dev.jar"/>
+			</classpath>
+        </javac>       
+    </target>      
+    
+	<target name="addStaticFilesJar" depends="compile">
+		<copy todir="${build}/${moduleDir}">
+			<fileset dir="${src}/${moduleDir}">
+			<include name="public/**" />
+			<include name="client/*.java" />
+			</fileset>
+		</copy>
+		<copy file="${src}/${moduleDir}/${moduleXML}" tofile="${build}/${moduleDir}/${moduleXML}" />
+		<copy todir="${build}/">
+			<fileset dir="${jarstatic}/">
+				<include name="**" />
+			</fileset>
+		</copy>
+    </target>
+	
+    <!-- Package the compiled Java source into a JAR file -->
+    <target name="jar" depends="addStaticFilesJar">      
+		<jar jarfile="${lib}/${sourcefolder}.jar" basedir="${build}/">
+            <!-- uncomment to not wrap any of the client only code into the JAR -->
+            <!-- <exclude name="${gwt.client.dir}/**/*.class"/> -->
+        </jar>
+    </target>
+	
+	<target name="jarCl" depends="jar, clean">
+	</target>
+   
+   <!-- Dist. Zip separate from JAR to minimize dev's app size -->
+ 	<target name="addStaticFilesZip" depends="jar">
+		<mkdir dir="${dist}" />
+		
+		<!-- copy static files intended for dist dir's root -->
+		<copy todir="${dist}/">
+			<fileset dir="${jarstatic}/">
+				<include name="**" />
+			</fileset>
+			<fileset dir="${zipstatic}/">
+				<include name="**" />
+			</fileset>
+		</copy>
+		
+		<!-- move archive -->
+		<move todir="${dist}/">
+			<fileset dir="${lib}/">
+				<include name="${sourcefolder}.jar" />
+			</fileset>
+		</move>
+		
+		<!-- copy build instructions and source folder -->
+		<mkdir dir="${dist}/source/" />
+		<copy todir="${dist}/source/">
+			<fileset dir="${buildstatic}/">
+				<include name="**" />
+			</fileset>
+		</copy>
+		<mkdir dir="${dist}/source/" />    
+		<copy todir="${dist}/source/">
+			<fileset dir="..">
+				<include name="${sourcefolder}/**" />
+				<exclude name="${sourcefolder}/${dist}/**" />
+				<exclude name="${sourcefolder}/${build}/**" />
+				<exclude name="${sourcefolder}/${lib}/**" />
+				<exclude name="${sourcefolder}/.settings/**" />
+				<exclude name="${sourcefolder}/.git/**" />
+				<exclude name="${sourcefolder}/${dist}.zip" />
+			</fileset>
+		</copy>
+		
+    </target>
+	
+    <target name="dist" depends="addStaticFilesZip">  
+		<delete file="${dist}.zip"/>
+		<zip destfile="${dist}.zip" basedir="${dist}/">
+        </zip>   
+    </target>  
+	
+	<target name="distCl" depends="dist, clean"> 
+		<delete file="${lib}/${sourcefolder}.jar" />
+    </target>
+</project>
