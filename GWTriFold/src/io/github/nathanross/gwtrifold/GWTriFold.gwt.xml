@@ -20,6 +20,8 @@
   "http://google-web-toolkit.googlecode.com/svn/tags/2.5.1/distro-source/core/src/gwt-module.dtd">
 <module rename-to='gwtrifold'>
   <inherits name='com.google.gwt.user.User'/>
-  <!--<script src="trifoldJS.min.js"/>-->
+  <script src="TriFold.js"/>
+  <stylesheet src="TriFold.css"/>
+  <!--<script src="TriFold-0.1.min.js"/>-->
   <source path='client'/>
 </module>

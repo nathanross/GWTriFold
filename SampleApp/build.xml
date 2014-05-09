@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<project name="Sample" default="build" basedir=".">
+  <!-- Arguments to gwtc and devmode targets -->
+  <property name="gwt.args" value="" />
+
+  <property environment="env"/>
+	
+	<!-- BEGIN: detect any eclipse path to GWT SDK -->
+	
+	<!-- this section is so we don't need to transmit 6MB gwt-servlet.jar 
+		with SampleDemo and Eclipse users don't have to dig through their 
+		eclipse path to add it. They can just right click ant.xml and press
+		build.
+	
+	if you are not using eclipse, and instead just using $GWT_HOME as an 
+	environment variable, you can replace this entire section with the line:
+	<property name="gwt.sdk" location="${env.GWT_HOME}" /> -->  
+	<!-- if loaded from eclipse, find plugins dir, and use version wildcard to find both sdk folder, and gdk folder under it --><condition property="gwt.parentstrbase" value="${eclipse.home}/plugins/"><isset property="eclipse.home"/></condition><condition property="gwt.parentstrincl" value="com.google.gwt.eclipse.sdkbundle_*"><isset property="eclipse.home"/></condition><condition property="gwt.childstr" value="gwt-*"><isset property="eclipse.home"/></condition> <!-- if loaded from command line, we leave it to the user to define $GWT_HOME in their environment to their SDK root directory --> <condition property="gwt.parentstr" value="${env.GWT_HOME}"><not><isset property="eclipse.home"/></not>    </condition><condition property="gwt.parentincl" value="."><not><isset property="eclipse.home"/></not></condition><condition property="gwt.childstr" value=""><not><isset property="eclipse.home"/></not></condition>	<!-- get a set of all dirs matching the 'parentstrincl' wildcard from within the 'parentstrbase' directory and convert the first result in time to the string property 'gwt.parentfound' --><pathconvert property="gwt.parentdirres" pathsep="${line.separator}"><map from="${basedir}${file.separator}" to=""/><dirset id="gwt.parentdir" dir="${gwt.parentstrbase}" includes="${gwt.parentstrincl}" /></pathconvert><loadresource property="gwt.parentfound"><string value="${gwt.parentdirres}"/><filterchain><headfilter lines="1"/></filterchain></loadresource><!-- get a set of all dirs matching the 'childstr' wildcard	from within the 'gwt.parentfound' directory and	convert the first result in time to the string property 'gwt.sdk' --><pathconvert property="gwt.childdirres" pathsep="${line.separator}"><map from="${basedir}${file.separator}" to=""/><dirset id="gwt.sdkdir" dir="${gwt.parentfound}" includes="${gwt.childstr}" /></pathconvert><loadresource property="gwt.sdk"><string value="${gwt.childdirres}"/><filterchain><headfilter lines="1"/></filterchain></loadresource>
+	
+	<!-- END: detect any eclipse path to GWT SDK -->
+
+  <path id="project.class.path">
+    <pathelement location="war/WEB-INF/classes"/>
+    <pathelement location="${gwt.sdk}/gwt-user.jar"/>
+    <fileset dir="${gwt.sdk}" includes="gwt-dev*.jar"/>
+    <!-- Add any additional non-server libs (such as JUnit) -->
+    <fileset dir="war/WEB-INF/lib" includes="**/*.jar"/>
+  </path>
+
+  <target name="libs" description="Copy libs to WEB-INF/lib">
+    <mkdir dir="war/WEB-INF/lib" />
+    <copy todir="war/WEB-INF/lib" file="${gwt.sdk}/gwt-servlet.jar" />
+    <copy todir="war/WEB-INF/lib" file="${gwt.sdk}/gwt-servlet-deps.jar" />
+    <!-- Add any additional server libs that need to be copied -->
+  </target>
+
+  <target name="javac" depends="libs" description="Compile java source to bytecode">
+    <mkdir dir="war/WEB-INF/classes"/>
+    <javac srcdir="src" includes="**" encoding="utf-8"
+        destdir="war/WEB-INF/classes"
+        source="1.5" target="1.5" nowarn="true"
+        debug="true" debuglevel="lines,vars,source">
+      <classpath refid="project.class.path"/>
+    </javac>
+    <copy todir="war/WEB-INF/classes">
+      <fileset dir="src" excludes="**/*.java"/>
+    </copy>
+  </target>
+
+  <target name="gwtc" depends="javac" description="GWT compile to JavaScript (production mode)">
+    <java failonerror="true" fork="true" classname="com.google.gwt.dev.Compiler">
+      <classpath>
+        <pathelement location="src"/>
+        <path refid="project.class.path"/>
+        <pathelement location="${gwt.sdk}/validation-api-1.0.0.GA.jar" />
+        <pathelement location="${gwt.sdk}/validation-api-1.0.0.GA-sources.jar" />
+      </classpath>
+      <!-- add jvmarg -Xss16M or similar if you see a StackOverflowError -->
+      <jvmarg value="-Xmx256M"/>
+      <arg line="-war"/>
+      <arg value="war"/>
+      <!-- Additional arguments like -style PRETTY or -logLevel DEBUG -->
+      <arg line="${gwt.args}"/>
+      <arg value="com.website.sample.Sample"/>
+    </java>
+  </target>
+
+  <target name="devmode" depends="javac" description="Run development mode">
+    <java failonerror="true" fork="true" classname="com.google.gwt.dev.DevMode">
+      <classpath>
+        <pathelement location="src"/>
+        <path refid="project.class.path"/>
+        <pathelement location="${gwt.sdk}/validation-api-1.0.0.GA.jar" />
+        <pathelement location="${gwt.sdk}/validation-api-1.0.0.GA-sources.jar" />
+      </classpath>
+      <jvmarg value="-Xmx256M"/>
+      <arg value="-startupUrl"/>
+      <arg value="Sample.html"/>
+      <arg line="-war"/>
+      <arg value="war"/>
+      <!-- Additional arguments like -style PRETTY or -logLevel DEBUG -->
+      <arg line="${gwt.args}"/>
+      <arg value="com.website.sample.Sample"/>
+    </java>
+  </target>
+
+  <target name="superdevmode" depends="javac" description="Run Super Dev Mode">
+    <java failonerror="true" fork="true" classname="com.google.gwt.dev.codeserver.CodeServer">
+      <classpath>
+        <pathelement location="src"/>
+        <pathelement location="${gwt.sdk}/gwt-codeserver.jar" />
+        <path refid="project.class.path"/>
+        <pathelement location="${gwt.sdk}/validation-api-1.0.0.GA.jar" />
+        <pathelement location="${gwt.sdk}/validation-api-1.0.0.GA-sources.jar" />
+      </classpath>
+      <jvmarg value="-Xmx256M"/>
+      <arg value="com.website.sample.Sample"/>
+    </java>
+  </target>
+
+<!--
+Test targets suppressed because -junit argument was not specified when running webAppCreator.
+
+  <target name="javac.tests" depends="javac" description="Compiles test code">
+    <javac srcdir="test" includes="**" encoding="utf-8"
+      source="1.5" target="1.5" nowarn="true"
+      destdir="war/WEB-INF/classes"
+      debug="true" debuglevel="lines,vars,source">
+      <classpath location="path_to_the_junit_jar"/>
+      <classpath refid="project.class.path"/>
+    </javac>
+  </target>
+  
+  <target name="test.dev" depends="javac.tests" description="Run development mode tests">
+    <mkdir dir="reports/htmlunit.dev" />
+    <junit fork="yes" printsummary="yes" haltonfailure="yes">
+      <jvmarg line="-Xmx256m" />
+      <sysproperty key="gwt.args" value="-standardsMode -logLevel WARN" />
+      <sysproperty key="java.awt.headless" value="true" />
+      <classpath>
+        <pathelement location="src" />
+        <pathelement location="test" />
+        <path refid="project.class.path" />
+        <pathelement location="${gwt.sdk}/validation-api-1.0.0.GA.jar" />
+        <pathelement location="${gwt.sdk}/validation-api-1.0.0.GA-sources.jar" />
+        <pathelement location="path_to_the_junit_jar" />
+      </classpath>
+      <batchtest todir="reports/htmlunit.dev" >
+        <fileset dir="test" >
+          <include name="**/*Test.java" />
+        </fileset>
+      </batchtest>
+      <formatter type="plain" />
+      <formatter type="xml" />
+    </junit>
+  </target>
+
+  <target name="test.prod" depends="javac.tests" description="Run production mode tests">
+    <mkdir dir="reports/htmlunit.prod" />
+    <junit fork="yes" printsummary="yes" haltonfailure="yes">
+      <jvmarg line="-Xmx256m" />
+      <sysproperty key="gwt.args" value="-prod -standardsMode -logLevel WARN -standardsMode -war www-test" />
+      <sysproperty key="java.awt.headless" value="true" />
+      <classpath>
+        <pathelement location="src" />
+        <pathelement location="test" />
+        <path refid="project.class.path" />
+        <pathelement location="${gwt.sdk}/validation-api-1.0.0.GA.jar" />
+        <pathelement location="${gwt.sdk}/validation-api-1.0.0.GA-sources.jar" />
+        <pathelement location="path_to_the_junit_jar" />
+      </classpath>
+      <batchtest todir="reports/htmlunit.prod" >
+        <fileset dir="test" >
+          <include name="**/*Test.java" />
+        </fileset>
+      </batchtest>
+      <formatter type="plain" />
+      <formatter type="xml" />
+    </junit>
+  </target>
+
+  <target name="test" description="Run development and production mode tests">
+    <antcall target="test.dev" />
+    <antcall target="test.prod" />
+  </target>
+-->
+
+  <target name="hosted" depends="devmode" description="Run development mode (NOTE: the 'hosted' target is deprecated)" />
+
+  <target name="build" depends="gwtc" description="Build this project" />
+
+  <target name="war" depends="build" description="Create a war file">
+    <zip destfile="Sample.war" basedir="war"/>
+  </target>
+
+  <target name="clean" description="Cleans this project">
+    <delete dir="war/WEB-INF/classes" failonerror="false" />
+    <delete dir="war/sample" failonerror="false" />
+  </target>
+
+</project>
