@@ -6,7 +6,7 @@ GWTriFold is a GWT wrapper for easy use and configuration of the TriFold layout 
 
 # Using GWTriFold
 
-The best way to download and use GWTriFold is through the GWTriFold demo. Download it directly here (with default configuration), or try out the configuration options on the TriFold configdemo website and then download a configured version.
+The best way to download and use GWTriFold is through the GWTriFold demo. Download a stock demo, or configure and download your demo via the the [TriFold configdemo website](http://nathanross.github.io/TriFold).
 
 The Sample App also contains a copy of the documentation.
 
